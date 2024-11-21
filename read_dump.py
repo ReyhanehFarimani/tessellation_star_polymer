@@ -75,6 +75,32 @@ def load_dump(file_path, rescale = False):
 
 
 def get_star_info(timestep_trj, core_index, star_type, box_info):
+    """
+    Extracts information about a star polymer's core and monomers, including radius of gyration (Rg),
+    radial distances, and angular positions of monomers relative to the core, while accounting for
+    periodic boundary conditions.
+
+    Parameters:
+    ----------
+    timestep_trj : np.ndarray
+        Array containing the atomic/molecular data for a single timestep. 
+        Expected columns: [id, type, x, y, z] (z = 0 for 2D systems).
+    core_index : int
+        Identifier for the star core in the trajectory.
+    star_type : int
+        Type identifier for the star's monomers.
+    box_info : tuple
+        Tuple containing the box dimensions (box_x, box_y).
+
+    Returns:
+    -------
+    rg : float
+        Radius of gyration of the star polymer.
+    r : np.ndarray
+        Radial distances of each monomer from the core.
+    theta : np.ndarray
+        Angular positions of each monomer (in radians) relative to the core.
+    """
     core = timestep_trj[timestep_trj[:,0] == core_index]
     core = np.column_stack((core[:, 2], core[:,3]))
     star_mono = timestep_trj[timestep_trj[:,1] == star_type]
@@ -86,7 +112,6 @@ def get_star_info(timestep_trj, core_index, star_type, box_info):
     # computing r:
     r = star_mono[:, 0] * star_mono[:, 0] + star_mono[:, 1] * star_mono[:, 1]
     r = np.sqrt(r)
-    
     # computing theta
     theta = np.arccos(star_mono[:, 0]/ r)
     theta[star_mono[:, 1]/r<0] = 2 * np.pi - theta[star_mono[:, 1]/r<0] 
