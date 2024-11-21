@@ -88,7 +88,7 @@ def get_star_info(timestep_trj, core_index, star_type, box_info):
     
     # computing theta
     theta = np.arccos(star_mono[:, 0]/ r)
-    
+    theta[star_mono[:, 1]/r<0] = 2 * np.pi - theta[star_mono[:, 1]/r<0] 
     # computing rg
     star_mono -= np.mean(star_mono, axis = 0)
 
