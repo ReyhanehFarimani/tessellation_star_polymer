@@ -27,11 +27,21 @@ def plotter(ts, list_of_star_core_ID, list_of_star_type, box_info, dr, d_theta, 
     periodic : bool, optional
         Whether to apply periodic boundary conditions. Default is True.
     """
+    
+    # Define a fixed palette with at least 32 colors
+    color_palette = [
+        "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f",
+        "#bcbd22", "#17becf", "#393b79", "#5254a3", "#6b6ecf", "#9c9ede", "#637939", "#8ca252",
+        "#b5cf6b", "#cedb9c", "#8c6d31", "#bd9e39", "#e7ba52", "#e7cb94", "#843c39", "#ad494a",
+        "#d6616b", "#e7969c", "#7b4173", "#a55194", "#ce6dbd", "#de9ed6", "#3182bd", "#6baed6"
+    ]
+    
+    
     # Adjust figure size dynamically based on the box dimensions
     box_x, box_y = box_info
     aspect_ratio = box_y / box_x
     plt.figure(figsize=(8, 8 * aspect_ratio))
-    
+    color = 0
     for coreID, starType in zip(list_of_star_core_ID, list_of_star_type):
         
         # Extract core coordinates
@@ -52,9 +62,12 @@ def plotter(ts, list_of_star_core_ID, list_of_star_type, box_info, dr, d_theta, 
         
         if periodic:
             # Apply periodic boundaries to the coordinates
-            X -= np.round((X + box_x / 2) / box_x) * box_x
-            Y -= np.round((Y + box_y / 2) / box_y) * box_y
-        
+            X -= np.round((X ) / box_x) * box_x
+            Y -= np.round((Y ) / box_y) * box_y
+
+                    
+        X[-1] = X[0]
+        Y[-1] = Y[0]
         # Smooth boundary using Cubic Spline
         t = np.linspace(0, 1, len(X))  # Parameter for spline interpolation
         spline_x = CubicSpline(t, X, bc_type='periodic')
@@ -63,25 +76,46 @@ def plotter(ts, list_of_star_core_ID, list_of_star_type, box_info, dr, d_theta, 
         t_smooth = np.linspace(0, 1, 10000)  # Increased resolution for smooth boundary
         x_smooth = spline_x(t_smooth)
         y_smooth = spline_y(t_smooth)
-
+        if periodic:
+            x_smooth -= np.round((x_smooth) / box_x) * box_x
+            y_smooth -= np.round((y_smooth) / box_y) * box_y
         # Plot star monomers with transparency to reduce visual clutter
-        plt.scatter(ts[ts[:, 1] == starType][:, 2], ts[ts[:, 1] == starType][:, 3], alpha=0.3, label=f"Star {coreID}")
-        
-        #removing lines breaked due to boundaries:
-        r_smooth = np.zeros_like(x_smooth)
-        r_smooth[:-1] = (x_smooth[1:] - x_smooth[:-1])**2 + (y_smooth[1:] - y_smooth[:-1])**2
-        r_smooth[-1] = (x_smooth[-1] - x_smooth[0])**2 + (y_smooth[-1] - y_smooth[0])**2
-        x_smooth = x_smooth[r_smooth<100]
-        y_smooth = y_smooth[r_smooth<100]
-        # Plot smooth boundary
-        plt.plot(x_smooth, y_smooth, label=f"Boundary {starType - 1}", linewidth=1.2)
+        plt.scatter(ts[ts[:, 1] == starType][:, 2], ts[ts[:, 1] == starType][:, 3], alpha=0.2, label=f"Star {coreID}", c = color_palette[color])
 
+        #removing lines breaked due to boundaries:
+        right_x_smooth = x_smooth[x_smooth< -box_x/2] + box_x
+        right_y_smooth = y_smooth[x_smooth< -box_x/2]
+        
+        left_x_smooth = x_smooth[x_smooth> box_x/2] - box_x
+        left_y_smooth = y_smooth[x_smooth> box_x/2]
+        
+        up_x_smooth = x_smooth[y_smooth< -box_y/2] 
+        up_y_smooth = y_smooth[y_smooth< -box_y/2] + box_y
+        
+        down_x_smooth = x_smooth[y_smooth> box_y/2] 
+        down_y_smooth = y_smooth[y_smooth> box_y/2] - box_y
+     
+        try :
+            plt.plot(right_x_smooth, right_y_smooth, linewidth=2.0, color = color_palette[color])
+            plt.plot(left_x_smooth, left_y_smooth, linewidth=2.0, color = color_palette[color])
+            
+        except:
+            pass
+        try:            
+            plt.plot(down_x_smooth, down_y_smooth, linewidth=2.0, color = color_palette[color])
+            plt.plot(up_x_smooth, up_y_smooth, linewidth=2.0, color = color_palette[color])
+
+        except:
+            pass
+        # Plot smooth boundary
+        plt.plot(x_smooth, y_smooth, label=f"Boundary {starType - 1}", linewidth=2.0, color = color_palette[color])
+        color +=1
     # Configure plot appearance
     plt.xlabel("x-coordinate")
     plt.ylabel("y-coordinate")
     plt.title("Star Polymer Boundaries")
-    plt.legend(loc="best", fontsize=8)
-    # plt.axis([-box_x, box_x, -box_y, box_y])  # Ensure plot covers the entire simulation box
+    # plt.legend(loc="best", fontsize=8)
+    plt.axis([-box_x/2, box_x/2, -box_y/2, box_y/2])  # Ensure plot covers the entire simulation box
     # plt.grid(True, linestyle="--", alpha=0.7)
     plt.gca().set_aspect('equal')
     plt.tight_layout()
