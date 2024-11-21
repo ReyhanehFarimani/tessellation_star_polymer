@@ -55,7 +55,8 @@ def load_dump(file_path, rescale = False):
             elif "ITEM: BOX BOUNDS" in line:
                 # Read the next three lines as box bounds
                 box_bounds = [list(map(float, file.readline().split())) for _ in range(3)]
-                print(box_bounds)
+                box0 = box_bounds[0][1] - box_bounds[0][0]
+                box1 = box_bounds[1][1] - box_bounds[1][0]
             elif "ITEM: ATOMS" in line:
                 # Column names are based on the line, expected to contain id, type, x, y, z
                 columns = line.split()[2:]
@@ -70,7 +71,7 @@ def load_dump(file_path, rescale = False):
         if timestep is not None:
             timesteps[len(timestep_indices)] = np.array(atom_data)
     
-    return timesteps, np.array(box_bounds), columns, timestep_indices
+    return timesteps, np.array([box0, box1]), columns, timestep_indices
 
 
 def get_star_info(timestep_trj, core_index, star_type, box_info):
@@ -81,7 +82,7 @@ def get_star_info(timestep_trj, core_index, star_type, box_info):
 
     star_mono -= core
     ## applying periodic boundary condition.
-    
+    star_mono -= np.round(star_mono/box_info) * box_info
     # computing r:
     r = star_mono[:, 0] * star_mono[:, 0] + star_mono[:, 1] * star_mono[:, 1]
     r = np.sqrt(r)
