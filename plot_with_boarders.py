@@ -37,6 +37,16 @@ def plotter(ts, list_of_star_core_ID, list_of_star_type, box_info, dr, d_theta, 
     ]
     
     
+    plt.rc("text", usetex=True)
+    plt.rc(
+    "text.latex",
+    preamble=r"\usepackage{newpxtext}\usepackage{newpxmath}\usepackage{commath}\usepackage{mathtools}",
+    )
+    plt.rc("font", family="serif", size=12)
+    plt.rc("savefig", dpi=200)
+    plt.rc("legend", loc="best", fontsize="large", fancybox=False, framealpha=0.0)
+    plt.rc("lines", linewidth=1.0, markersize=4, markeredgewidth=0.5)
+    
     # Adjust figure size dynamically based on the box dimensions
     box_x, box_y = box_info
     aspect_ratio = box_y / box_x
@@ -80,7 +90,7 @@ def plotter(ts, list_of_star_core_ID, list_of_star_type, box_info, dr, d_theta, 
             x_smooth -= np.round((x_smooth) / box_x) * box_x
             y_smooth -= np.round((y_smooth) / box_y) * box_y
         # Plot star monomers with transparency to reduce visual clutter
-        plt.scatter(ts[ts[:, 1] == starType][:, 2], ts[ts[:, 1] == starType][:, 3], alpha=0.2, label=f"Star {coreID}", c = color_palette[color])
+        plt.scatter(ts[ts[:, 1] == starType][:, 2], ts[ts[:, 1] == starType][:, 3], alpha=0.15, label=f"Star {coreID}", c = color_palette[color])
 
         #removing lines breaked due to boundaries:
         right_x_smooth = x_smooth[x_smooth< -box_x/2] + box_x
@@ -96,14 +106,14 @@ def plotter(ts, list_of_star_core_ID, list_of_star_type, box_info, dr, d_theta, 
         down_y_smooth = y_smooth[y_smooth> box_y/2] - box_y
      
         try :
-            plt.plot(right_x_smooth, right_y_smooth, linewidth=2.0, color = color_palette[color])
-            plt.plot(left_x_smooth, left_y_smooth, linewidth=2.0, color = color_palette[color])
+            plt.plot(right_x_smooth, right_y_smooth, linewidth=2.5, color = color_palette[color])
+            plt.plot(left_x_smooth, left_y_smooth, linewidth=2.5, color = color_palette[color])
             
         except:
             pass
         try:            
-            plt.plot(down_x_smooth, down_y_smooth, linewidth=2.0, color = color_palette[color])
-            plt.plot(up_x_smooth, up_y_smooth, linewidth=2.0, color = color_palette[color])
+            plt.plot(down_x_smooth, down_y_smooth, linewidth=2.5, color = color_palette[color])
+            plt.plot(up_x_smooth, up_y_smooth, linewidth=2.5, color = color_palette[color])
 
         except:
             pass

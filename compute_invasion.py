@@ -105,9 +105,9 @@ def compute_strong_invasion(ts, list_of_star_core_ID, list_of_star_type, box_inf
 
     # Compute the invasion areas (overlap between polygons with PBC)
     invasion_areas = []
-    total_area = []
+
     for i in range(len(polygons)):
-        total_area.append(polygons[i].area)
+
         for j in range(i + 1, len(polygons)):
             # Generate unfolded polygons for both stars
             unfolded_i = unfold_polygon(polygons[i], box_x, box_y)
@@ -122,6 +122,100 @@ def compute_strong_invasion(ts, list_of_star_core_ID, list_of_star_type, box_inf
                         max_overlap_area = max(max_overlap_area, overlap.area)
 
             if max_overlap_area > 0:
-                invasion_areas.append((list_of_star_core_ID[i], list_of_star_core_ID[j], max_overlap_area))
+                invasion_areas.append(max_overlap_area)
 
-    return np.array(invasion_areas), np.array(total_area)
+    return np.array(invasion_areas)
+
+def compute_highest_strong_invasion(Rg, density):
+    epsilon = 0.000001
+    d = np.sqrt(density)
+    alpha = np.arccos(d/2/Rg)
+    S = 4 * Rg * Rg * (4 * alpha - np.sin(2 * alpha))
+    if S == 0:
+        return epsilon
+    return S
+
+
+def compute_surface_and_area(ts, list_of_star_core_ID, list_of_star_type, box_info, dr, d_theta, rho_trshld):
+    """
+    Computes the surface (perimeter) and area of star boundaries.
+
+    Parameters:
+    ----------
+    ts : np.ndarray
+        Timestep data from the simulation (atomic positions and types).
+    list_of_star_core_ID : list
+        List of IDs for the star cores.
+    list_of_star_type : list
+        List of star types corresponding to the cores.
+    box_info : tuple
+        Size of the periodic simulation box (box_x, box_y).
+    dr : float
+        Radial resolution for boundary calculation.
+    d_theta : float
+        Angular resolution for boundary calculation.
+    rho_trshld : float
+        Density threshold for determining the boundary.
+
+    Returns:
+    -------
+    total_perimeter : np.ndarray
+        Perimeters of each star's boundary.
+    total_area : np.ndarray
+        Areas of each star's boundary.
+    """
+    
+    
+    
+    box_x, box_y = box_info
+
+    x_star = []
+    y_star = []
+    polygons = []  # Store polygons for each star boundary
+
+    # Compute smoothed boundaries for all stars
+    for coreID, starType in zip(list_of_star_core_ID, list_of_star_type):
+        # Extract core coordinates
+        core_x = ts[ts[:, 0] == coreID][:, 2]
+        core_y = ts[ts[:, 0] == coreID][:, 3]
+
+        # Get star info and boundary
+        rg, r, theta = get_star_info(ts, coreID, starType, box_info)
+        THETA, R = boarder_calculation_polar_coord_around_star(rg, r, theta, dr, d_theta, rho_trshld)
+
+        # Convert polar to Cartesian
+        X = R * np.cos(THETA)
+        Y = R * np.sin(THETA)
+
+        # Add core position
+        X += core_x
+        Y += core_y
+
+        # Close the boundary
+        X[-1] = X[0]
+        Y[-1] = Y[0]
+
+        # Smooth boundary using Cubic Spline
+        t = np.linspace(0, 1, len(X))
+        spline_x = CubicSpline(t, X, bc_type='periodic')
+        spline_y = CubicSpline(t, Y, bc_type='periodic')
+
+        t_smooth = np.linspace(0, 1, 10000)
+        x_smooth = spline_x(t_smooth)
+        y_smooth = spline_y(t_smooth)
+
+        x_star.append(x_smooth)
+        y_star.append(y_smooth)
+
+        # Create a polygon for the star boundary
+        boundary_polygon = Polygon(np.column_stack((x_smooth, y_smooth)))
+        polygons.append(boundary_polygon)
+
+    # Compute perimeters and areas
+    total_perimeter = []
+    total_area = []
+    for polygon in polygons:
+        total_perimeter.append(polygon.length)  # Compute perimeter
+        total_area.append(polygon.area)  # Compute area
+
+    return np.array(total_perimeter), np.array(total_area)
